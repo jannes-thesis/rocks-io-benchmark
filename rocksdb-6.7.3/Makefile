@@ -378,6 +378,8 @@ EXEC_LDFLAGS += $(LUA_LIB)
 
 endif
 
+EXEC_LDFLAGS += adapter.a
+
 ifeq ($(NO_THREEWAY_CRC32C), 1)
 	CXXFLAGS += -DNO_THREEWAY_CRC32C
 endif

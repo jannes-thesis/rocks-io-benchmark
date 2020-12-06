@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "util/adapter.h"
 #include "util/threadpool_imp.h"
 
 #include "monitoring/thread_status_util.h"
@@ -28,10 +29,33 @@
 #include <deque>
 #include <mutex>
 #include <sstream>
+#include <syscall.h>
 #include <thread>
 #include <vector>
+#include <iostream>
 
 namespace rocksdb {
+
+IntervalDerivedData calc_metrics(const IntervalDataFFI *data)
+{
+    IntervalDerivedData derived;
+    derived.reset_metric = (double)data->write_bytes;
+    derived.scale_metric = (double)data->write_bytes;
+    return derived;
+}
+
+AdapterParameters *get_adapter_params()
+{
+    AdapterParameters *params = (AdapterParameters*) malloc(sizeof(AdapterParameters));
+    int32_t *syscalls = (int32_t*) malloc(sizeof(int32_t));
+    syscalls[0] = 1;
+
+    params->amount_syscalls = 1;
+    params->calc_interval_metrics = calc_metrics;
+    params->check_interval_ms = 1000;
+    params->syscall_nrs = syscalls;
+    return params;
+}
 
 void ThreadPoolImpl::PthreadCall(const char* label, int result) {
   if (result != 0) {
@@ -71,6 +95,8 @@ struct ThreadPoolImpl::Impl {
 
   int UnSchedule(void* arg);
 
+  bool IsAdaptive();
+
   void SetHostEnv(Env* env) { env_ = env; }
 
   Env* GetHostEnv() const { return env_; }
@@ -95,11 +121,26 @@ struct ThreadPoolImpl::Impl {
   Env::Priority GetThreadPriority() const { return priority_; }
 
   // Set the thread priority.
-  void SetThreadPriority(Env::Priority priority) { priority_ = priority; }
+  void SetThreadPriority(Env::Priority priority) { 
+    priority_ = priority;
+    if (priority == Env::Priority::HIGH) {
+      std::cout << "instantiating FLUSH threadpool" << std::endl;
+      AdapterParameters* params = get_adapter_params();
+      if (new_adapter(params)) {
+        std::cout << "init adapter success" << std::endl;
+        is_adaptive = true;
+      }
+      else {
+        std::cout << "init adapter failure" << std::endl;
+        exit(1);
+      }
+    }
+  }
 
 private:
  static void BGThreadWrapper(void* arg);
 
+ bool is_adaptive;
  bool low_io_priority_;
  bool low_cpu_priority_;
  Env::Priority priority_;
@@ -129,6 +170,7 @@ private:
 inline
 ThreadPoolImpl::Impl::Impl()
     :
+      is_adaptive(false),
       low_io_priority_(false),
       low_cpu_priority_(false),
       priority_(Env::LOW),
@@ -187,6 +229,14 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
   bool low_io_priority = false;
   bool low_cpu_priority = false;
 
+  if (this->is_adaptive) {
+    pid_t worker_pid = syscall(__NR_gettid);
+    if (!add_tracee(worker_pid)) {
+      std::cout << "ERROR: could not add tracee" << std::endl;
+      exit(1);
+    }
+  }
+
   while (true) {
     // Wait until there is an item that is ready to run
     std::unique_lock<std::mutex> lock(mu_);
@@ -194,6 +244,16 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
     while (!exit_all_threads_ && !IsLastExcessiveThread(thread_id) &&
            (queue_.empty() || IsExcessiveThread(thread_id))) {
       bgsignal_.wait(lock);
+    }
+
+    if (this->is_adaptive) {
+      int to_scale = get_scaling_advice();
+      if (this->total_threads_limit_ + to_scale > 0) {
+        this->total_threads_limit_ += to_scale;
+      }
+      else {
+        this->total_threads_limit_ = 1;
+      }
     }
 
     if (exit_all_threads_) {  // mechanism to let BG threads exit safely
@@ -263,6 +323,11 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
     (void)decrease_cpu_priority;
 #endif
     func();
+  }
+
+  if (this->is_adaptive) {
+    pid_t worker_pid = syscall(__NR_gettid);
+    remove_tracee(worker_pid);
   }
 }
 
