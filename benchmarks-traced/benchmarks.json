@@ -1,0 +1,20 @@
+{
+    "apollo_test":
+    {
+        "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
+        "workloads": ["fillseq_disable_wal", "bulkload"],
+        "thread_configurations": [[1, 2]]
+    },
+    "apollo_half":
+    {
+        "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
+        "workloads": ["fillseq_disable_wal", "bulkload"],
+        "thread_configurations": [[1, 1], [1, 2], [1, 4], [1, 8], [1, 12], [1, 16], [1, 24], [1, 32], [1, 64]]
+    },
+    "apollo_updaterandom":
+    {
+        "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
+        "workloads": ["updaterandom"],
+        "thread_configurations": [[1, 2]]
+    }
+}
