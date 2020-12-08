@@ -1,6 +1,10 @@
 #ifndef scaling_adapter_h
 #define scaling_adapter_h
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -62,4 +66,7 @@ bool new_default_adapter(const char *algo_params_str);
 
 bool remove_tracee(int32_t tracee_pid);
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* scaling_adapter_h */

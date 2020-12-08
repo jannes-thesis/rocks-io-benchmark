@@ -36,27 +36,6 @@
 
 namespace rocksdb {
 
-IntervalDerivedData calc_metrics(const IntervalDataFFI *data)
-{
-    IntervalDerivedData derived;
-    derived.reset_metric = (double)data->write_bytes;
-    derived.scale_metric = (double)data->write_bytes;
-    return derived;
-}
-
-AdapterParameters *get_adapter_params()
-{
-    AdapterParameters *params = (AdapterParameters*) malloc(sizeof(AdapterParameters));
-    int32_t *syscalls = (int32_t*) malloc(sizeof(int32_t));
-    syscalls[0] = 1;
-
-    params->amount_syscalls = 1;
-    params->calc_interval_metrics = calc_metrics;
-    params->check_interval_ms = 1000;
-    params->syscall_nrs = syscalls;
-    return params;
-}
-
 void ThreadPoolImpl::PthreadCall(const char* label, int result) {
   if (result != 0) {
     fprintf(stderr, "pthread %s: %s\n", label, strerror(result));
@@ -125,8 +104,12 @@ struct ThreadPoolImpl::Impl {
     priority_ = priority;
     if (priority == Env::Priority::HIGH) {
       std::cout << "instantiating FLUSH threadpool" << std::endl;
-      AdapterParameters* params = get_adapter_params();
-      if (new_adapter(params)) {
+      const char* algo_params_str = std::getenv("ALGO_PARAMS");
+      if (algo_params_str == NULL) {
+        std::cout << "ALGO_PARAMS environment variable not set" << std::endl;
+        exit(1);
+      }
+      if (new_default_adapter(algo_params_str)) {
         std::cout << "init adapter success" << std::endl;
         is_adaptive = true;
       }
