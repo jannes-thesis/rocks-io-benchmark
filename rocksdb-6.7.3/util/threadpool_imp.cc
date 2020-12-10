@@ -27,6 +27,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <deque>
+#include <limits> 
 #include <mutex>
 #include <sstream>
 #include <syscall.h>
@@ -208,6 +209,13 @@ void ThreadPoolImpl::Impl::LowerCPUPriority() {
   low_cpu_priority_ = true;
 }
 
+int32_t convert_queue_len(unsigned int queue_len) {
+  if (queue_len > static_cast<unsigned int>(std::numeric_limits<int32_t>::max())) {
+    return std::numeric_limits<int32_t>::max();
+  }
+  return static_cast<int32_t>(queue_len);
+}
+
 void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
   bool low_io_priority = false;
   bool low_cpu_priority = false;
@@ -230,7 +238,7 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
     }
 
     if (this->is_adaptive) {
-      int to_scale = get_scaling_advice();
+      int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
       if (this->total_threads_limit_ + to_scale > 0) {
         this->total_threads_limit_ += to_scale;
       }
