@@ -1,6 +1,5 @@
 #!/bin/bash
 
-sudo apt-get -y install gcc g++ libgflags-dev libzstd-dev libsnappy-dev
 cd rocksdb-6.7.3
-make release
+DEBUG_LEVEL=0 make db_bench
 cd ..
