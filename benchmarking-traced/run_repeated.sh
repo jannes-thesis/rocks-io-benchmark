@@ -1,6 +1,6 @@
 #!/bin/bash
-for i in {1..5}
+for i in {1..3}
 do
-    python3 run_benchmarks.py $1
+    python run_bench_traced.py $1
 done
-bash combine_results.sh 5
+bash combine_results.sh 3

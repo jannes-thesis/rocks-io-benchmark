@@ -1,20 +1,30 @@
 {
+    "test":
+    {
+        "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
+        "workload": "updaterandom",
+        "flush_threads": [ 2 ],
+        "data_dir": "/ssd2/rocks-io-benchmark"
+    },
     "bulkload":
     {
         "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
         "workload": "bulkload",
-        "flush_threads": [2]
+        "flush_threads": [ 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
+        "data_dir": "/ssd2/rocks-io-benchmark"
     },
     "fillseq_disable_wal":
     {
-        "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
+        "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
         "workload": "fillseq_disable_wal",
-        "flush_threads": [1, 4, 8]
+        "flush_threads": [ 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
+        "data_dir": "/ssd2/rocks-io-benchmark"
     },
     "updaterandom":
     {
-        "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
+        "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
         "workloads": "updaterandom",
-        "flush_threads": [1, 4, 8]
+        "flush_threads": [ 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
+        "data_dir": "/ssd2/rocks-io-benchmark"
     }
 }

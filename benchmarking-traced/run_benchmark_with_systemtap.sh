@@ -1,7 +1,7 @@
 #!/bin/bash
-if [ $# -ne 4 ]; then
+if [ $# -ne 5 ]; then
   echo "./run_benchmark.sh [num_flush_threads]
-  [workload_name] [output_prefix] [rocks_bin_dir]"
+  [workload_name] [output_prefix] [rocks_bin_dir] [data_dir]"
   exit 0
 fi
 
@@ -11,12 +11,12 @@ export NUM_FLUSH_THREADS=$1
 workload=$2
 output_prefix=$3
 rocks_bin_dir=$4
-current_dir=$(pwd)
+data_dir=$5
 # configuration for db_bench tool
-export DB_DIR=${current_dir}/benchmark-data/db
-export WAL_DIR=${current_dir}/benchmark-data/wal
-export TEMP=${current_dir}/benchmark-data/tmp
-export OUTPUT_DIR=${current_dir}/benchmark-data/output
+export DB_DIR=${data_dir}/benchmark-data/db
+export WAL_DIR=${data_dir}/benchmark-data/wal
+export TEMP=${data_dir}/benchmark-data/tmp
+export OUTPUT_DIR=${data_dir}/benchmark-data/output
 
 # 80mil keys a w. 400 byte vals -> 3.2GB
 
