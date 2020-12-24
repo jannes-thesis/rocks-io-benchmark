@@ -1,21 +1,20 @@
 #!/bin/bash
-if [ $# -ne 5 ]; then
-  echo "./run_benchmark.sh [num_compaction_threads] [num_flush_threads]
+if [ $# -ne 4 ]; then
+  echo "./run_benchmark.sh [num_flush_threads]
   [workload_name] [result_dir] [rocks_bin_dir]"
   exit 0
 fi
 
 # results written here
-stats_dir=$4
+stats_dir=$3
 if [ ! -d $stats_dir ]; then
   mkdir $stats_dir
 fi
 
 # configuration for benchmark wrapper script
-export NUM_COMPACTION_THREADS=$1
-export NUM_FLUSH_THREADS=$2
-workload=$3
-rocks_bin_dir=$5
+export NUM_FLUSH_THREADS=$1
+workload=$2
+rocks_bin_dir=$4
 current_dir=$(pwd)
 # configuration for db_bench tool
 export DB_DIR=${current_dir}/benchmark-data/db
@@ -70,33 +69,4 @@ fi
 
 
 # run actual benchmark
-./benchmark-mod.sh $workload $rocks_bin_dir &
-
-# get wrapper script pid and wait a bit for it to start db_bench
-pid=$!
-sleep 2
-
-# should only show the actual parent process
-bench_pid=`pidof db_bench`
-echo "actual pid is ${bench_pid}"
-
-# get tids of the compaction and flush thread pools
-# write statistics in order: whole process, compaction threads, flush threads
-flush_tids=`bash get_child_tids.sh db_bench high`
-echo "flush tids are ${flush_tids}"
-# tids_arr=(${flush_tids//,/ })
-# first_tid=${flush_tids[0]}
-
-# start collecting statistics
-set -m
-sudo nohup staprun topsysm2.ko "targets_arg=$flush_tids" -o "$stats_dir/metrics-$workload.txt" > /dev/null 2> /dev/null < /dev/null &
-staprun_pid=$!
-pidstat_lite $bench_pid $flush_tids > "$stats_dir/pidstats-$workload.txt" &
-pidstat_pid=$!
-
-# wait for benchmark wrapper script to finish
-wait $pid 
-sudo kill -INT $staprun_pid
-tail --pid=$staprun_pid -f /dev/null
-# make sure staprun result file is written to disk
-sync
+./benchmark-mod.sh $workload $rocks_bin_dir

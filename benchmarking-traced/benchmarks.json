@@ -1,20 +1,20 @@
 {
-    "apollo_test":
+    "bulkload":
     {
-        "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
-        "workloads": ["fillseq_disable_wal", "bulkload"],
-        "thread_configurations": [[1, 2]]
+        "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
+        "workload": "bulkload",
+        "flush_threads": [2]
     },
-    "apollo_half":
+    "fillseq_disable_wal":
     {
         "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
-        "workloads": ["fillseq_disable_wal", "bulkload"],
-        "thread_configurations": [[1, 1], [1, 2], [1, 4], [1, 8], [1, 12], [1, 16], [1, 24], [1, 32], [1, 64]]
+        "workload": "fillseq_disable_wal",
+        "flush_threads": [1, 4, 8]
     },
-    "apollo_updaterandom":
+    "updaterandom":
     {
         "rocks_bin_dir": "/home/jannes/thesis-applications/rocksdb-6.7.3",
-        "workloads": ["updaterandom"],
-        "thread_configurations": [[1, 2]]
+        "workloads": "updaterandom",
+        "flush_threads": [1, 4, 8]
     }
 }

@@ -1,21 +1,16 @@
 #!/bin/bash
-if [ $# -ne 5 ]; then
-  echo "./run_benchmark.sh [num_compaction_threads] [num_flush_threads]
-  [workload_name] [result_dir] [rocks_bin_dir]"
+if [ $# -ne 4 ]; then
+  echo "./run_benchmark.sh [num_flush_threads]
+  [workload_name] [output_prefix] [rocks_bin_dir]"
   exit 0
 fi
 
-# results written here
-stats_dir=$4
-if [ ! -d $stats_dir ]; then
-  mkdir $stats_dir
-fi
-
 # configuration for benchmark wrapper script
-export NUM_COMPACTION_THREADS=$1
-export NUM_FLUSH_THREADS=$2
-workload=$3
-rocks_bin_dir=$5
+export NUM_COMPACTION_THREADS=4
+export NUM_FLUSH_THREADS=$1
+workload=$2
+output_prefix=$3
+rocks_bin_dir=$4
 current_dir=$(pwd)
 # configuration for db_bench tool
 export DB_DIR=${current_dir}/benchmark-data/db
@@ -68,7 +63,7 @@ if [ $workload = "readrandom" ]; then
     export NUM_KEYS=800000
 fi
 
-
+start_millis=`date +%s%3N`
 # run actual benchmark
 ./benchmark-mod.sh $workload $rocks_bin_dir &
 
@@ -82,20 +77,22 @@ echo "actual pid is ${bench_pid}"
 
 # get tids of the compaction and flush thread pools
 # write statistics in order: whole process, compaction threads, flush threads
-flush_tids=`bash get_child_tids.sh db_bench high`
+flush_tids=$(bash get_child_tids.sh db_bench high)
 echo "flush tids are ${flush_tids}"
-# tids_arr=(${flush_tids//,/ })
-# first_tid=${flush_tids[0]}
 
-# start collecting statistics
 set -m
-sudo nohup staprun topsysm2.ko "targets_arg=$flush_tids" -o "$stats_dir/metrics-$workload.txt" > /dev/null 2> /dev/null < /dev/null &
+sudo nohup staprun topsysm2.ko "targets_arg=$flush_tids" -o "${output_prefix}-syscalls.txt" > /dev/null 2> /dev/null < /dev/null &
 staprun_pid=$!
-pidstat_lite $bench_pid $flush_tids > "$stats_dir/pidstats-$workload.txt" &
+echo "staprun pid for workers: ${staprun_pid}"
+pidstat_lite $bench_pid $flush_tids > "${output_prefix}-pidstats.txt" &
 pidstat_pid=$!
+echo "pidstat pid: ${pidstat_pid}"
 
-# wait for benchmark wrapper script to finish
 wait $pid 
+end_millis=`date +%s%3N`
+let runtime=$end_millis-$start_millis
+echo $runtime > "${output_prefix}-runtime_ms.txt"
+
 sudo kill -INT $staprun_pid
 tail --pid=$staprun_pid -f /dev/null
 # make sure staprun result file is written to disk

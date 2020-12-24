@@ -41,3 +41,7 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,vscode
 
+.vscode
+*.ko
+**/db_bench
+
