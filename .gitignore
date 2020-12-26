@@ -44,4 +44,5 @@ Temporary Items
 .vscode
 *.ko
 **/db_bench
+**/__pycache__
 
