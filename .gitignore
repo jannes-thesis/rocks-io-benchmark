@@ -44,5 +44,7 @@ Temporary Items
 .vscode
 *.ko
 **/db_bench
+**/db_bench_original
+**/db_bench_adaptive
 **/__pycache__
 

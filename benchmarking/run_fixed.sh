@@ -1,5 +1,5 @@
 #!/bin/bash
-# required: db_bench linked in current directory
+# required: db_bench compiled and in parent dir with name db_bench_original
 if [ $# -ne 4 ]; then
   echo "./run_fixed.sh [num_flush_threads] [workload_name] [num_keys] [data_dir]"
   exit 0
@@ -16,4 +16,5 @@ export WAL_DIR=${data_dir}/benchmark-data/wal
 export TEMP=${data_dir}/benchmark-data/tmp
 export OUTPUT_DIR=${data_dir}/benchmark-data/output
 
+ln ../db_bench_original db_bench
 ./benchmark-mod.sh $workload_name
