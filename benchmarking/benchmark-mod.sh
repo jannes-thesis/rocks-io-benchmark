@@ -2,16 +2,12 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 # REQUIRE: db_bench binary exists in the current directory
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 1 ]; then
   echo -n "./benchmark.sh [bulkload/fillseq/overwrite/filluniquerandom/"
   echo    "readrandom/readwhilewriting/readwhilemerging/updaterandom/"
-  echo    "mergerandom/randomtransaction/compact] [rocks_bin_dir]"
+  echo    "mergerandom/randomtransaction/compact]"
   exit 0
 fi
-
-current_dir=$(pwd)
-rocks_bin_dir=$2
-cd $rocks_bin_dir
 
 # Make it easier to run only the compaction test. Getting valid data requires
 # a number of iterations and having an ability to run the test separately from
@@ -524,5 +520,3 @@ for job in ${jobs[@]}; do
   tail -1 $output_dir/report.txt
 
 done
-
-cd $current_dir
