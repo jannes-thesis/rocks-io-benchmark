@@ -7,7 +7,7 @@
 ## branches
 
 - master: original rocksdb v6.7.3
-- adaptive: rocksdb v6.7.3 with adaptive libuv threadpool
+- adaptive: rocksdb v6.7.3 with adaptive flush threadpool
 
 ## dependencies
 
