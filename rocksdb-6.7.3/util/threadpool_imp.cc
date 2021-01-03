@@ -239,12 +239,11 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
 
     if (this->is_adaptive) {
       int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
-      if (this->total_threads_limit_ + to_scale > 0) {
-        this->total_threads_limit_ += to_scale;
+      int new_thread_limit = this->total_threads_limit_ + to_scale;
+      if (new_thread_limit < 1) {
+        new_thread_limit = 1;
       }
-      else {
-        this->total_threads_limit_ = 1;
-      }
+      this->SetBackgroundThreadsInternal(new_thread_limit, true);
     }
 
     if (exit_all_threads_) {  // mechanism to let BG threads exit safely
