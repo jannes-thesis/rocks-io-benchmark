@@ -239,9 +239,13 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
 
     if (this->is_adaptive) {
       int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
-      total_threads_limit_ = std::max(1, this->total_threads_limit_ + to_scale);
-      WakeUpAllThreads();
-      StartBGThreads();
+      if (to_scale != 0) {
+        total_threads_limit_ = std::max(1, this->total_threads_limit_ + to_scale);
+        WakeUpAllThreads();
+        StartBGThreads();
+        lock.unlock();
+        continue;
+      }
     }
 
     if (exit_all_threads_) {  // mechanism to let BG threads exit safely
