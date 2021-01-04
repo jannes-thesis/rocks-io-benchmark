@@ -62,6 +62,12 @@ if [ $workload = "readrandom" ]; then
     export NUM_THREADS=8
     export NUM_KEYS=800000
 fi
+# random read-modify-writes 
+# no sync after every write
+if [ $workload = "readrandomwriterandom" ]; then
+    export DB_BENCH_NO_SYNC=yep
+    export NUM_KEYS=4000000
+fi
 
 start_millis=`date +%s%3N`
 # run actual benchmark

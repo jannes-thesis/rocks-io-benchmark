@@ -205,6 +205,26 @@ function run_bulkload {
   eval $cmd
 }
 
+function run_bulkload_nocompact {
+  # This runs with a vector memtable and the WAL disabled to load faster. It is still crash safe and the
+  # client can discover where to restart a load after a crash. I think this is a good way to load.
+  echo "Bulk loading $num_keys random keys"
+  cmd="./db_bench --benchmarks=fillrandom \
+       --use_existing_db=0 \
+       --disable_auto_compactions=1 \
+       --sync=0 \
+       $params_bulkload \
+       --threads=1 \
+       --memtablerep=vector \
+       --allow_concurrent_memtable_write=false \
+       --disable_wal=1 \
+       --seed=$( date +%s ) \
+       2>&1 | tee -a $output_dir/benchmark_bulkload_fillrandom.log"
+  echo $cmd | tee $output_dir/benchmark_bulkload_fillrandom.log
+  eval $cmd
+  summarize_result $output_dir/benchmark_bulkload_fillrandom.log bulkload fillrandom
+}
+
 #
 # Parameter description:
 #
@@ -469,6 +489,8 @@ for job in ${jobs[@]}; do
   start=$(now)
   if [ $job = bulkload ]; then
     run_bulkload
+  if [ $job = bulkload_nocompact ]; then
+    run_bulkload_nocompact
   elif [ $job = fillseq_disable_wal ]; then
     run_fillseq 1
   elif [ $job = fillseq_enable_wal ]; then
@@ -476,7 +498,12 @@ for job in ${jobs[@]}; do
   elif [ $job = overwrite ]; then
     run_change overwrite
   elif [ $job = updaterandom ]; then
+    num_threads=2
     run_change updaterandom
+  elif [ $job = readrandomwriterandom ]; then
+    num_threads=4
+    syncval="0"
+    run_change readrandomwriterandom
   elif [ $job = mergerandom ]; then
     run_change mergerandom
   elif [ $job = filluniquerandom ]; then

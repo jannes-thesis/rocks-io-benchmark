@@ -481,6 +481,9 @@ for job in ${jobs[@]}; do
     run_change overwrite
   elif [ $job = updaterandom ]; then
     run_change updaterandom
+  elif [ $job = readrandomwriterandom ]; then
+    num_threads=2
+    run_change readrandomwriterandom
   elif [ $job = mergerandom ]; then
     run_change mergerandom
   elif [ $job = filluniquerandom ]; then

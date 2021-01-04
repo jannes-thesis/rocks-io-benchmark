@@ -10,7 +10,7 @@ data_dir=$4
 export ALGO_PARAMS=$1
 # configuration for db_bench tool
 export NUM_KEYS=$3
-export NUM_FLUSH_THREADS=4 # garbage value
+export NUM_FLUSH_THREADS=1 # initial pool size
 export NUM_COMPACTION_THREADS=4
 export DB_DIR=${data_dir}/benchmark-data/db
 export WAL_DIR=${data_dir}/benchmark-data/wal

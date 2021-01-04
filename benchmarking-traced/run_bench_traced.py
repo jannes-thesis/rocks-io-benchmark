@@ -32,7 +32,7 @@ def execute_config(n_flush_threads, workload, rocks_bin_dir, output_dir, data_di
     output_prefix = str(os.path.join(output_dir, f't={n_flush_threads}'))
     if os.path.exists(f'{data_dir}/benchmark-data'):
         shutil.rmtree(f'{data_dir}/benchmark-data')
-    if workload == 'updaterandom':
+    if workload == 'updaterandom' or workload == 'readrandomwriterandom':
         shutil.copytree('/ssd2/rocks-io-benchmark/updaterandom/benchmark-data', f'{data_dir}/benchmark-data')
     else:
         os.mkdir(f'{data_dir}/benchmark-data')
