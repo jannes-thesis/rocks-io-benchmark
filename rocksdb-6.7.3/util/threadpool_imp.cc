@@ -420,6 +420,13 @@ void ThreadPoolImpl::Impl::Submit(std::function<void()>&& schedule,
     return;
   }
 
+  if (this->is_adaptive) {
+    int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
+    if (to_scale != 0) {
+      total_threads_limit_ = std::max(1, this->total_threads_limit_ + to_scale);
+      WakeUpAllThreads();
+    }
+  }
   StartBGThreads();
 
   // Add to priority queue
