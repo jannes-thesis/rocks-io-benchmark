@@ -2,16 +2,14 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 # REQUIRE: db_bench binary exists in the current directory
 
-if [ $# -ne 2 ]; then
+if [ $# -ne 1 ]; then
   echo -n "./benchmark.sh [bulkload/fillseq/overwrite/filluniquerandom/"
   echo    "readrandom/readwhilewriting/readwhilemerging/updaterandom/"
-  echo    "mergerandom/randomtransaction/compact] [rocks_bin_dir]"
+  echo    "mergerandom/randomtransaction/compact]"
   exit 0
 fi
 
-current_dir=$(pwd)
-rocks_bin_dir=$2
-cd $rocks_bin_dir
+job=$1
 
 # Make it easier to run only the compaction test. Getting valid data requires
 # a number of iterations and having an ability to run the test separately from
@@ -207,6 +205,26 @@ function run_bulkload {
        2>&1 | tee -a $output_dir/benchmark_bulkload_compact.log"
   echo $cmd | tee $output_dir/benchmark_bulkload_compact.log
   eval $cmd
+}
+
+function run_bulkload_nocompact {
+  # This runs with a vector memtable and the WAL disabled to load faster. It is still crash safe and the
+  # client can discover where to restart a load after a crash. I think this is a good way to load.
+  echo "Bulk loading $num_keys random keys"
+  cmd="./db_bench --benchmarks=fillrandom \
+       --use_existing_db=0 \
+       --disable_auto_compactions=1 \
+       --sync=0 \
+       $params_bulkload \
+       --threads=1 \
+       --memtablerep=vector \
+       --allow_concurrent_memtable_write=false \
+       --disable_wal=1 \
+       --seed=$( date +%s ) \
+       2>&1 | tee -a $output_dir/benchmark_bulkload_fillrandom.log"
+  echo $cmd | tee $output_dir/benchmark_bulkload_fillrandom.log
+  eval $cmd
+  summarize_result $output_dir/benchmark_bulkload_fillrandom.log bulkload fillrandom
 }
 
 #
@@ -462,70 +480,67 @@ schedule="$output_dir/schedule.txt"
 echo "===== Benchmark ====="
 
 # Run!!!
-IFS=',' read -a jobs <<< $1
-# shellcheck disable=SC2068
-for job in ${jobs[@]}; do
+if [ $job != debug ]; then
+  echo "Start $job at `date`" | tee -a $schedule
+fi
 
-  if [ $job != debug ]; then
-    echo "Start $job at `date`" | tee -a $schedule
-  fi
+start=$(now)
+if [ $job = bulkload ]; then
+  run_bulkload
+elif [ $job = bulkload_nocompact ]; then
+  run_bulkload_nocompact
+elif [ $job = fillseq_disable_wal ]; then
+  run_fillseq 1
+elif [ $job = fillseq_enable_wal ]; then
+  run_fillseq 0
+elif [ $job = overwrite ]; then
+  run_change overwrite
+elif [ $job = updaterandom ]; then
+  num_threads=2
+  run_change updaterandom
+elif [ $job = readrandomwriterandom ]; then
+  num_threads=4
+  syncval="0"
+  run_change readrandomwriterandom
+elif [ $job = mergerandom ]; then
+  run_change mergerandom
+elif [ $job = filluniquerandom ]; then
+  run_filluniquerandom
+elif [ $job = readrandom ]; then
+  run_readrandom
+elif [ $job = fwdrange ]; then
+  run_range $job false
+elif [ $job = revrange ]; then
+  run_range $job true
+elif [ $job = readwhilewriting ]; then
+  run_readwhile writing
+elif [ $job = readwhilemerging ]; then
+  run_readwhile merging
+elif [ $job = fwdrangewhilewriting ]; then
+  run_rangewhile writing $job false
+elif [ $job = revrangewhilewriting ]; then
+  run_rangewhile writing $job true
+elif [ $job = fwdrangewhilemerging ]; then
+  run_rangewhile merging $job false
+elif [ $job = revrangewhilemerging ]; then
+  run_rangewhile merging $job true
+elif [ $job = randomtransaction ]; then
+  run_randomtransaction
+elif [ $job = universal_compaction ]; then
+  run_univ_compaction
+elif [ $job = debug ]; then
+  num_keys=1000; # debug
+  echo "Setting num_keys to $num_keys"
+else
+  echo "unknown job $job"
+  exit
+fi
+end=$(now)
 
-  start=$(now)
-  if [ $job = bulkload ]; then
-    run_bulkload
-  elif [ $job = fillseq_disable_wal ]; then
-    run_fillseq 1
-  elif [ $job = fillseq_enable_wal ]; then
-    run_fillseq 0
-  elif [ $job = overwrite ]; then
-    run_change overwrite
-  elif [ $job = updaterandom ]; then
-    run_change updaterandom
-  elif [ $job = readrandomwriterandom ]; then
-    num_threads=2
-    run_change readrandomwriterandom
-  elif [ $job = mergerandom ]; then
-    run_change mergerandom
-  elif [ $job = filluniquerandom ]; then
-    run_filluniquerandom
-  elif [ $job = readrandom ]; then
-    run_readrandom
-  elif [ $job = fwdrange ]; then
-    run_range $job false
-  elif [ $job = revrange ]; then
-    run_range $job true
-  elif [ $job = readwhilewriting ]; then
-    run_readwhile writing
-  elif [ $job = readwhilemerging ]; then
-    run_readwhile merging
-  elif [ $job = fwdrangewhilewriting ]; then
-    run_rangewhile writing $job false
-  elif [ $job = revrangewhilewriting ]; then
-    run_rangewhile writing $job true
-  elif [ $job = fwdrangewhilemerging ]; then
-    run_rangewhile merging $job false
-  elif [ $job = revrangewhilemerging ]; then
-    run_rangewhile merging $job true
-  elif [ $job = randomtransaction ]; then
-    run_randomtransaction
-  elif [ $job = universal_compaction ]; then
-    run_univ_compaction
-  elif [ $job = debug ]; then
-    num_keys=1000; # debug
-    echo "Setting num_keys to $num_keys"
-  else
-    echo "unknown job $job"
-    exit
-  fi
-  end=$(now)
+if [ $job != debug ]; then
+  echo "Complete $job in $((end-start)) seconds" | tee -a $schedule
+fi
 
-  if [ $job != debug ]; then
-    echo "Complete $job in $((end-start)) seconds" | tee -a $schedule
-  fi
+echo -e "ops/sec\tmb/sec\tSize-GB\tL0_GB\tSum_GB\tW-Amp\tW-MB/s\tusec/op\tp50\tp75\tp99\tp99.9\tp99.99\tUptime\tStall-time\tStall%\tTest"
+tail -1 $output_dir/report.txt
 
-  echo -e "ops/sec\tmb/sec\tSize-GB\tL0_GB\tSum_GB\tW-Amp\tW-MB/s\tusec/op\tp50\tp75\tp99\tp99.9\tp99.99\tUptime\tStall-time\tStall%\tTest"
-  tail -1 $output_dir/report.txt
-
-done
-
-cd $current_dir

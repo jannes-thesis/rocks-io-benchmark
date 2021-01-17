@@ -27,6 +27,10 @@ if [ $workload = "bulkload" ]; then
     # export NUM_KEYS=8000000
     export NUM_KEYS=40000000
 fi
+if [ $workload = "bulkload_nocompact" ]; then
+    # export NUM_KEYS=8000000
+    export NUM_KEYS=40000000
+fi
 # load keys sequentially
 # single-threaded
 if [ $workload = "fillseq_disable_wal" ]; then
@@ -71,7 +75,7 @@ fi
 
 start_millis=`date +%s%3N`
 # run actual benchmark
-./benchmark-mod.sh $workload $rocks_bin_dir &
+./benchmark-mod.sh $workload &
 
 # get wrapper script pid and wait a bit for it to start db_bench
 pid=$!

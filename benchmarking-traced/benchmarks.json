@@ -13,6 +13,13 @@
         "flush_threads": [ 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
         "data_dir": "/ssd2/rocks-io-benchmark"
     },
+    "bulkload_nocompact":
+    {
+        "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
+        "workload": "bulkload_nocompact",
+        "flush_threads": [ 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48],
+        "data_dir": "/ssd2/rocks-io-benchmark"
+    },
     "fillseq_disable_wal":
     {
         "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
