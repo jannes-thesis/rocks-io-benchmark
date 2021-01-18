@@ -34,6 +34,7 @@
 #include <thread>
 #include <vector>
 #include <iostream>
+#include <chrono>
 
 namespace rocksdb {
 
@@ -66,6 +67,7 @@ struct ThreadPoolImpl::Impl {
     bgsignal_.notify_all();
   }
 
+  void ManagerThread();
   void BGThread(size_t thread_id);
 
   void StartBGThreads();
@@ -118,11 +120,15 @@ struct ThreadPoolImpl::Impl {
         std::cout << "init adapter failure" << std::endl;
         exit(1);
       }
+      // start manager thread
+      port::Thread manager(&ManagerThreadWrapper, this);
+      manager.detach();
     }
   }
 
 private:
  static void BGThreadWrapper(void* arg);
+ static void ManagerThreadWrapper(void* arg);
 
  bool is_adaptive;
  bool low_io_priority_;
@@ -215,6 +221,24 @@ int32_t convert_queue_len(unsigned int queue_len) {
   }
   return static_cast<int32_t>(queue_len);
 }
+ 
+void ThreadPoolImpl::Impl::ManagerThread() {
+  while (!exit_all_threads_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // only get scale advice if there are no outstanding terminations
+    // that haven't been completed because workers are still busy
+    if ((int)bgthreads_.size() <= total_threads_limit_) {
+      std::unique_lock<std::mutex> lock(mu_);
+      int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
+      if (to_scale != 0) {
+        total_threads_limit_ = std::max(1, this->total_threads_limit_ + to_scale);
+        WakeUpAllThreads();
+        StartBGThreads();
+      }
+      lock.unlock();
+    }
+  }
+}
 
 void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
   bool low_io_priority = false;
@@ -237,19 +261,7 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
       bgsignal_.wait(lock);
     }
 
-    if (this->is_adaptive) {
-      int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
-      if (to_scale != 0) {
-        total_threads_limit_ = std::max(1, this->total_threads_limit_ + to_scale);
-        WakeUpAllThreads();
-        StartBGThreads();
-        lock.unlock();
-        continue;
-      }
-    }
-
     if (exit_all_threads_) {  // mechanism to let BG threads exit safely
-
       if (!wait_for_jobs_to_complete_ ||
           queue_.empty()) {
         break;
@@ -330,6 +342,12 @@ struct BGThreadMetadata {
   BGThreadMetadata(ThreadPoolImpl::Impl* thread_pool, size_t thread_id)
       : thread_pool_(thread_pool), thread_id_(thread_id) {}
 };
+
+void ThreadPoolImpl::Impl::ManagerThreadWrapper(void* arg) {
+  ThreadPoolImpl::Impl* tp = reinterpret_cast<ThreadPoolImpl::Impl*>(arg);
+  tp->ManagerThread();
+  return;
+}
 
 void ThreadPoolImpl::Impl::BGThreadWrapper(void* arg) {
   BGThreadMetadata* meta = reinterpret_cast<BGThreadMetadata*>(arg);
@@ -420,15 +438,6 @@ void ThreadPoolImpl::Impl::Submit(std::function<void()>&& schedule,
     return;
   }
 
-  // only get scale advice if there are no outstanding terminations
-  // that haven't been completed because workers are still busy
-  if (this->is_adaptive && (int)bgthreads_.size() <= total_threads_limit_) {
-    int to_scale = get_scaling_advice(convert_queue_len(queue_len_.load()));
-    if (to_scale != 0) {
-      total_threads_limit_ = std::max(1, this->total_threads_limit_ + to_scale);
-      WakeUpAllThreads();
-    }
-  }
   StartBGThreads();
 
   // Add to priority queue
