@@ -77,7 +77,9 @@ struct ThreadPoolImpl::Impl {
 
   int UnSchedule(void* arg);
 
-  bool IsAdaptive();
+  bool IsAdaptive() const {
+    return is_adaptive;
+  }
 
   void SetHostEnv(Env* env) { env_ = env; }
 
@@ -223,6 +225,8 @@ int32_t convert_queue_len(unsigned int queue_len) {
 }
  
 void ThreadPoolImpl::Impl::ManagerThread() {
+  // std::cout << "current pool size: " << this->bgthreads_.size() << std::endl;
+  // std::cout << "current thread limit: " << this->total_threads_limit_ << std::endl;
   while (!exit_all_threads_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     // only get scale advice if there are no outstanding terminations
@@ -256,6 +260,9 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
     // Wait until there is an item that is ready to run
     std::unique_lock<std::mutex> lock(mu_);
     // Stop waiting if the thread needs to do work or needs to terminate.
+    // if (this->is_adaptive) {
+    //   std::cout << "ERROR: worker about to block on mutex, thread id: " << thread_id << std::endl;
+    // }
     while (!exit_all_threads_ && !IsLastExcessiveThread(thread_id) &&
            (queue_.empty() || IsExcessiveThread(thread_id))) {
       bgsignal_.wait(lock);
@@ -283,6 +290,9 @@ void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
       break;
     }
 
+    // if (this->is_adaptive) {
+    //   std::cout << "ERROR: worker about to execute function, thread id: " << thread_id << std::endl;
+    // }
     auto func = std::move(queue_.front().function);
     queue_.pop_front();
 
@@ -451,6 +461,10 @@ void ThreadPoolImpl::Impl::Submit(std::function<void()>&& schedule,
   queue_len_.store(static_cast<unsigned int>(queue_.size()),
     std::memory_order_relaxed);
 
+  // if (this->is_adaptive) {
+  //     std::cout << "ERROR: submitted new job" << std::endl;
+  // }
+
   if (!HasExcessiveThread()) {
     // Wake up at least one waiting thread.
     bgsignal_.notify_one();
@@ -530,7 +544,14 @@ void ThreadPoolImpl::LowerCPUPriority() {
   impl_->LowerCPUPriority();
 }
 
+// THIS METHOD IS USED AS INSTANTION TIME
+// TO SET THE INTITAL POOL SIZE
 void ThreadPoolImpl::IncBackgroundThreadsIfNeeded(int num) {
+  if (impl_->IsAdaptive()) {
+      // std::cout << "increasing background threads to " << num << std::endl;
+      // ONLY SET AT BEGINNING WHEN USING DB_BENCH, IGNORE ENV, ALWAYS START WITH POOL SIZE
+      impl_->SetBackgroundThreadsInternal(1, false);
+  }
   impl_->SetBackgroundThreadsInternal(num, false);
 }
 
