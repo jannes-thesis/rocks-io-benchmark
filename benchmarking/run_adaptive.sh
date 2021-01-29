@@ -10,7 +10,11 @@ data_dir=$4
 export ALGO_PARAMS=$1
 # configuration for db_bench tool
 export NUM_KEYS=$3
-export NUM_FLUSH_THREADS=1 # initial pool size
+# somehow the num flush thread value also influences the job 
+# submission rate to the flush pool, regardless of actual pool size
+# therefore it needs to be set higher while ignoring this value 
+# when instantiating the flush pool which is always started with pool size 1
+export NUM_FLUSH_THREADS=8 
 export NUM_COMPACTION_THREADS=4
 export DB_DIR=${data_dir}/benchmark-data/db
 export WAL_DIR=${data_dir}/benchmark-data/wal

@@ -75,7 +75,9 @@ struct ThreadPoolImpl::Impl {
 
   int UnSchedule(void* arg);
 
-  bool IsAdaptive();
+  bool IsAdaptive() const {
+    return is_adaptive;
+  }
 
   void SetHostEnv(Env* env) { env_ = env; }
 
@@ -521,8 +523,17 @@ void ThreadPoolImpl::LowerCPUPriority() {
   impl_->LowerCPUPriority();
 }
 
+// THIS METHOD IS USED AS INSTANTION TIME
+// TO SET THE INTITAL POOL SIZE
 void ThreadPoolImpl::IncBackgroundThreadsIfNeeded(int num) {
-  impl_->SetBackgroundThreadsInternal(num, false);
+  // std::cout << "inc background threads" << num << std::endl;
+  if (impl_->IsAdaptive()) {
+    // IGNORE ENV, ALWAYS START WITH POOL SIZE 1
+    // std::cout << "is adaptive " << std::endl;
+    impl_->SetBackgroundThreadsInternal(1, false);
+  } else {
+    impl_->SetBackgroundThreadsInternal(num, false);
+  }
 }
 
 void ThreadPoolImpl::SubmitJob(const std::function<void()>& job) {
