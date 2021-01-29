@@ -122,8 +122,6 @@ struct ThreadPoolImpl::Impl {
         std::cout << "init adapter failure" << std::endl;
         exit(1);
       }
-      // IGNORE ENV, ALWAYS START WITH POOL SIZE 1
-      SetBackgroundThreadsInternal(1, true);
       // start manager thread
       port::Thread manager(&ManagerThreadWrapper, this);
       manager.detach();
@@ -227,11 +225,8 @@ int32_t convert_queue_len(unsigned int queue_len) {
 }
  
 void ThreadPoolImpl::Impl::ManagerThread() {
-  // std::cout << "current pool size: " << this->bgthreads_.size() << std::endl;
-  // std::cout << "current thread limit: " << this->total_threads_limit_ << std::endl;
-  // wait a bit for the pool to be down scaled back to 1
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   while (!exit_all_threads_) {
+    // std::cout << "flush pool thread count: " << bgthreads_.size() << std::endl;
     // trigger adapter internal update every 200ms
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     // only get scale advice if there are no outstanding terminations
@@ -552,7 +547,14 @@ void ThreadPoolImpl::LowerCPUPriority() {
 // THIS METHOD IS USED AS INSTANTION TIME
 // TO SET THE INTITAL POOL SIZE
 void ThreadPoolImpl::IncBackgroundThreadsIfNeeded(int num) {
-  impl_->SetBackgroundThreadsInternal(num, false);
+  // std::cout << "inc background threads" << num << std::endl;
+  if (impl_->IsAdaptive()) {
+    // IGNORE ENV, ALWAYS START WITH POOL SIZE 1
+    // std::cout << "is adaptive " << std::endl;
+    impl_->SetBackgroundThreadsInternal(1, false);
+  } else {
+    impl_->SetBackgroundThreadsInternal(num, false);
+  }
 }
 
 void ThreadPoolImpl::SubmitJob(const std::function<void()>& job) {
