@@ -1,0 +1,4 @@
+tracing threads: 23493
+bytes_read, bytes_write, blkio_delays, non-vol ctx switch, vol ctx switc, rchar, wchar
+5828608 7350734848 1 94 11 69594233 7350224231
+638976 7350349824 4993 6815 564 69561856 7350092632

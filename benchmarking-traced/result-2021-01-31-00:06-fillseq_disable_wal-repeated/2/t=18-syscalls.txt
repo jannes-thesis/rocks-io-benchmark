@@ -1,0 +1,13 @@
+targets: 20222,20227,20228,20229,20230,20231,20232,20233,20234,20235,20236,20237,20238,20239,20240,20241,20242,20243
+                  SYSCALL      TIME IN MS      COUNT
+          sync_file_range          273021        720
+                fdatasync          123345        213
+                    fsync           15469        124
+                    write            8506       6884
+                    pread            4072        620
+                   munmap              15         11
+                 mprotect              11        162
+                   openat               9        482
+                    lstat               7       3133
+                 readlink               1        241
+------------

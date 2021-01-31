@@ -1,0 +1,13 @@
+targets: 12248,12253,12254,12255,12256,12257,12258,12259
+                  SYSCALL      TIME IN MS      COUNT
+          sync_file_range          380730        710
+                fdatasync          108348        208
+                    futex           77122        877
+                    write           17185       6798
+                    pread            1945        605
+                    fsync             878        121
+                   munmap              54         41
+                   openat              52        472
+                    lstat               6       3068
+                 readlink               1        236
+------------
