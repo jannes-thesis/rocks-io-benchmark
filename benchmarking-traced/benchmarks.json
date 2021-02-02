@@ -40,5 +40,12 @@
         "workload": "readrandomwriterandom",
         "flush_threads": [ 1, 2 ],
         "data_dir": "/ssd2/rocks-io-benchmark"
+    },
+    "fillseq_sync":
+    {
+        "rocks_bin_dir": "/home/jannes/MasterThesis/rocks-io-benchmark/rocksdb-6.7.3",
+        "workload": "fillseq_sync",
+        "flush_threads": [ 1, 8 ],
+        "data_dir": "/ssd2/rocks-io-benchmark"
     }
 }

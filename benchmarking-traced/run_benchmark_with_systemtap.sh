@@ -37,6 +37,12 @@ if [ $workload = "fillseq_disable_wal" ]; then
     # export NUM_KEYS=8000000
     export NUM_KEYS=40000000
 fi
+# load keys sequentially
+# single-threaded
+if [ $workload = "fillseq_sync" ]; then
+    # export NUM_KEYS=8000000
+    export NUM_KEYS=100000
+fi
 # read random keys while updating
 # no sync after every write
 if [ $workload = "readwhilewriting" ]; then

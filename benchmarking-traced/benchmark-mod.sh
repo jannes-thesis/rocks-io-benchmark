@@ -357,6 +357,42 @@ function run_fillseq {
   summarize_result $log_file_name $test_name fillseq
 }
 
+function run_fillseq_sync {
+  # This runs with a vector memtable. WAL can be either disabled or enabled
+  # depending on the input parameter (1 for disabled, 0 for enabled). The main
+  # benefit behind disabling WAL is to make loading faster. It is still crash
+  # safe and the client can discover where to restart a load after a crash. I
+  # think this is a good way to load.
+
+  # Make sure that we'll have unique names for all the files so that data won't
+  # be overwritten.
+  if [ $1 == 1 ]; then
+    log_file_name=$output_dir/benchmark_fillseq.wal_disabled.v${value_size}.log
+    test_name=fillseq.wal_disabled.v${value_size}
+  else
+    log_file_name=$output_dir/benchmark_fillseq.wal_enabled.v${value_size}.log
+    test_name=fillseq.wal_enabled.v${value_size}
+  fi
+
+  echo "Loading $num_keys keys sequentially"
+  cmd="./db_bench --benchmarks=fillseq \
+       --use_existing_db=0 \
+       --sync=1 \
+       $params_fillseq \
+       --min_level_to_compress=0 \
+       --threads=8 \
+       --memtablerep=vector \
+       --allow_concurrent_memtable_write=false \
+       --disable_wal=$1 \
+       --seed=$( date +%s ) \
+       2>&1 | tee -a $log_file_name"
+  echo $cmd | tee $log_file_name
+  eval $cmd
+
+  # The constant "fillseq" which we pass to db_bench is the benchmark name.
+  summarize_result $log_file_name $test_name fillseq
+}
+
 function run_change {
   operation=$1
   echo "Do $num_keys random $operation"
@@ -489,6 +525,8 @@ if [ $job = bulkload ]; then
   run_bulkload
 elif [ $job = bulkload_nocompact ]; then
   run_bulkload_nocompact
+elif [ $job = fillseq_sync ]; then
+  run_fillseq_sync 0
 elif [ $job = fillseq_disable_wal ]; then
   run_fillseq 1
 elif [ $job = fillseq_enable_wal ]; then
